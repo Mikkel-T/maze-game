@@ -40,6 +40,12 @@ struct Player;
 #[derive(Component)]
 struct Collider;
 
+#[derive(Component)]
+struct Start;
+
+#[derive(Component)]
+struct End;
+
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
@@ -52,11 +58,11 @@ fn setup(mut commands: Commands) {
     commands.spawn((
         SpriteBundle {
             sprite: Sprite {
-                color: Color::RED,
+                color: Color::ORANGE,
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(0., 0., 0.),
+                translation: Vec3::new(-300. - coord_size, 0., 1.),
                 scale: Vec3::new(coord_size / 2., coord_size / 2., 1.),
                 ..default()
             },
@@ -106,7 +112,7 @@ fn setup(mut commands: Commands) {
                             ..default()
                         },
                         transform: Transform {
-                            translation: Vec3::new(x + dx, y + dy, 0.),
+                            translation: Vec3::new(x + dx, y + dy, 1.),
                             scale,
                             ..default()
                         },
@@ -115,6 +121,78 @@ fn setup(mut commands: Commands) {
                     Collider,
                 ));
             }
+        }
+    }
+
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::DARK_GREEN,
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(-300. - coord_size, 0., 0.),
+                scale: Vec3::new(coord_size * 2., coord_size * 2., 0.),
+                ..default()
+            },
+            ..default()
+        },
+        Start,
+    ));
+
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::RED,
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(300. + coord_size, 0., 0.),
+                scale: Vec3::new(coord_size * 2., coord_size * 2., 0.),
+                ..default()
+            },
+            ..default()
+        },
+        End,
+    ));
+
+    for i in [-1., 1.] {
+        commands.spawn((
+            SpriteBundle {
+                sprite: Sprite {
+                    color: Color::BLACK,
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(i * (300. + coord_size * 2.), 0., 1.),
+                    scale: Vec3::new(MAZE_BORDER_WIDTH, coord_size * 2. + MAZE_BORDER_WIDTH, 0.),
+                    ..default()
+                },
+                ..default()
+            },
+            Collider,
+        ));
+
+        for j in [-1., 1.] {
+            commands.spawn((
+                SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::BLACK,
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: Vec3::new(i * (300. + coord_size), j * coord_size, 1.),
+                        scale: Vec3::new(
+                            coord_size * 2. + MAZE_BORDER_WIDTH,
+                            MAZE_BORDER_WIDTH,
+                            0.,
+                        ),
+                        ..default()
+                    },
+                    ..default()
+                },
+                Collider,
+            ));
         }
     }
 }
