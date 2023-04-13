@@ -3,11 +3,12 @@ pub mod maze;
 use bevy::{
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
+    sprite::MaterialMesh2dBundle,
 };
 use maze::Direction;
 
 const HEIGHT: f32 = 600.;
-const WIDTH: f32 = 900.;
+const WIDTH: f32 = 1000.;
 
 const PLAYER_SPEED: f32 = 75.;
 
@@ -28,7 +29,9 @@ fn main() {
         }))
         .insert_resource(ClearColor(Color::WHITE))
         .add_startup_system(setup)
-        .add_system(move_player.in_schedule(CoreSchedule::FixedUpdate))
+        .add_systems(
+            (move_player, coin_check.after(move_player)).in_schedule(CoreSchedule::FixedUpdate),
+        )
         .insert_resource(FixedTime::new_from_secs(TIME_STEP))
         .add_system(bevy::window::close_on_esc)
         .run();
@@ -46,7 +49,17 @@ struct Start;
 #[derive(Component)]
 struct End;
 
-fn setup(mut commands: Commands) {
+#[derive(Component)]
+struct Coin;
+
+#[derive(Component)]
+struct EndGate;
+
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
     commands.spawn(Camera2dBundle::default());
 
     let size = 11;
@@ -75,6 +88,22 @@ fn setup(mut commands: Commands) {
         for (j, cell) in row.iter().enumerate() {
             let x = get_cell_coord(coord_size, j);
             let y = -get_cell_coord(coord_size, i);
+
+            if cell.coin {
+                commands.spawn((
+                    MaterialMesh2dBundle {
+                        mesh: meshes.add(shape::Circle::default().into()).into(),
+                        material: materials.add(ColorMaterial::from(Color::YELLOW)),
+                        transform: Transform {
+                            translation: Vec3::new(x, y, 0.),
+                            scale: Vec3::new(coord_size / 2., coord_size / 2., 1.),
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    Coin,
+                ));
+            }
 
             let mut dirs = vec![
                 Direction::North,
@@ -154,6 +183,23 @@ fn setup(mut commands: Commands) {
             ..default()
         },
         End,
+    ));
+
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::BLACK,
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(300. - MAZE_BORDER_WIDTH / 2., 0., 1.),
+                scale: Vec3::new(MAZE_BORDER_WIDTH, coord_size, 0.),
+                ..default()
+            },
+            ..default()
+        },
+        Collider,
+        EndGate,
     ));
 
     for i in [-1., 1.] {
@@ -275,5 +321,30 @@ fn move_player(
         }
     }
 
-    player_transform.translation += direction * TIME_STEP * PLAYER_SPEED;
+    player_transform.translation += direction.normalize_or_zero() * TIME_STEP * PLAYER_SPEED;
+}
+
+fn coin_check(
+    mut commands: Commands,
+    player_query: Query<&Transform, With<Player>>,
+    coin_query: Query<(Entity, &Transform), With<Coin>>,
+    end_gate_query: Query<Entity, With<EndGate>>,
+) {
+    let player_transform = player_query.single();
+
+    for (entity, transform) in coin_query.iter() {
+        if collide(
+            transform.translation,
+            transform.scale.truncate(),
+            player_transform.translation,
+            player_transform.scale.truncate(),
+        )
+        .is_some()
+        {
+            commands.entity(entity).despawn();
+            if coin_query.iter().count() == 1 {
+                commands.entity(end_gate_query.single()).despawn();
+            }
+        }
+    }
 }

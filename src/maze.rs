@@ -57,6 +57,26 @@ impl Maze {
         path[(size as f32 / 2.).floor() as usize][0].carve(Direction::West);
         path[(size as f32 / 2.).floor() as usize][size - 1].carve(Direction::East);
 
+        let mut coords: Vec<Point> = Vec::new();
+        for (i, row) in path.iter().enumerate() {
+            for (j, cell) in row.iter().enumerate() {
+                if cell.directions.len() == 1 {
+                    coords.push(Point {
+                        x: j as i128,
+                        y: i as i128,
+                    });
+                }
+            }
+        }
+
+        coords.shuffle(&mut rng);
+
+        for i in 0..5 {
+            if coords.len() > i {
+                path[coords[i].y as usize][coords[i].x as usize].coin = true;
+            }
+        }
+
         Maze { path }
     }
 }
@@ -64,17 +84,16 @@ impl Maze {
 #[derive(Debug, Clone)]
 pub struct Cell {
     pub directions: Vec<Direction>,
+    pub coin: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
-
 pub struct Point {
     x: i128,
     y: i128,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-
 pub enum Direction {
     North,
     South,
@@ -92,6 +111,7 @@ impl Cell {
     pub fn new() -> Cell {
         Cell {
             directions: Vec::new(),
+            coin: false,
         }
     }
 
