@@ -7,7 +7,7 @@ pub struct Maze {
 }
 
 impl Maze {
-    pub fn new(size: usize) -> Maze {
+    pub fn new(size: usize, coins: usize) -> Maze {
         let mut visited: Vec<Point> = Vec::new();
 
         let mut path: Vec<Vec<Cell>> = vec![vec![Cell::new(); size]; size];
@@ -71,7 +71,7 @@ impl Maze {
 
         coords.shuffle(&mut rng);
 
-        for i in 0..5 {
+        for i in 0..coins {
             if coords.len() > i {
                 path[coords[i].y as usize][coords[i].x as usize].coin = true;
             }
