@@ -54,29 +54,24 @@ struct EndGate;
 #[derive(Component)]
 struct TimerBoard;
 
-fn menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, maze_state: Res<MazeState>) {
+fn menu_setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut maze_state: ResMut<MazeState>,
+) {
     let size = maze_state.size;
     let coins = (size + 9) / 4;
 
-    let m = Maze::new(size, coins);
+    let path = &maze_state.path;
+
+    let m = match path.clone() {
+        Some(path) => path,
+        None => Maze::new(size, coins),
+    };
+
+    maze_state.path = Some(m.clone());
 
     let coord_size = (HEIGHT - MAZE_BORDER_WIDTH * (size as f32 + 1.)) / size as f32;
-
-    // Spawn background
-    commands.spawn((
-        SpriteBundle {
-            sprite: Sprite {
-                color: Color::CRIMSON,
-                ..default()
-            },
-            transform: Transform {
-                scale: Vec3::new(WIDTH, HEIGHT, -1.),
-                ..default()
-            },
-            ..default()
-        },
-        OnGameScreen,
-    ));
 
     // Spawn player
     commands.spawn((

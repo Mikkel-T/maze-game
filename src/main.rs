@@ -21,11 +21,12 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
         )
-        .insert_resource(ClearColor(Color::WHITE))
+        .insert_resource(ClearColor(utils::colors::BACKGROUND_COLOR))
         .add_state::<utils::vars::GameState>()
         .insert_resource(utils::vars::MazeState {
             stopwatch: Stopwatch::new(),
             size: 0,
+            path: None,
         })
         .add_plugin(menu::MenuPlugin)
         .add_plugin(game::GamePlugin)

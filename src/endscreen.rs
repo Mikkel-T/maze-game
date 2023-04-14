@@ -1,5 +1,5 @@
 use crate::utils::{
-    colors::{HOVERED_BUTTON, NORMAL_BUTTON, PRESSED_BUTTON, TEXT_COLOR},
+    colors::{BACKGROUND_COLOR, HOVERED_BUTTON, NORMAL_BUTTON, PRESSED_BUTTON, TEXT_COLOR},
     despawn_screen,
     vars::{GameState, MazeState},
 };
@@ -18,14 +18,18 @@ impl Plugin for EndScreenPlugin {
 #[derive(Component)]
 struct OnEndScreen;
 
+#[derive(Component)]
+struct ButtonAction(GameState);
+
 fn button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor),
+        (&Interaction, &mut BackgroundColor, &ButtonAction),
         (Changed<Interaction>, With<Button>),
     >,
     mut game_state: ResMut<NextState<GameState>>,
+    mut maze_state: ResMut<MazeState>,
 ) {
-    for (interaction, mut color) in &mut interaction_query {
+    for (interaction, mut color, state) in &mut interaction_query {
         *color = match *interaction {
             Interaction::Clicked => PRESSED_BUTTON.into(),
             Interaction::Hovered => HOVERED_BUTTON.into(),
@@ -33,7 +37,9 @@ fn button_system(
         };
 
         if *interaction == Interaction::Clicked {
-            game_state.set(GameState::Menu);
+            maze_state.stopwatch.reset();
+            maze_state.stopwatch.unpause();
+            game_state.set(state.0);
         }
     }
 }
@@ -52,7 +58,7 @@ fn endscreen_setup(
                     justify_content: JustifyContent::Center,
                     ..default()
                 },
-                background_color: Color::CRIMSON.into(),
+                background_color: BACKGROUND_COLOR.into(),
                 ..default()
             },
             OnEndScreen,
@@ -110,9 +116,35 @@ fn endscreen_setup(
                             background_color: NORMAL_BUTTON.into(),
                             ..default()
                         })
+                        .insert(ButtonAction(GameState::Menu))
                         .with_children(|parent| {
                             parent.spawn(TextBundle::from_section(
                                 "Back to start",
+                                TextStyle {
+                                    font: asset_server.load("fonts/PixeloidSansBold.ttf"),
+                                    font_size: 30.,
+                                    color: TEXT_COLOR,
+                                },
+                            ));
+                        });
+
+                    parent
+                        .spawn(ButtonBundle {
+                            style: Style {
+                                size: Size::new(Val::Px(300.), Val::Px(65.)),
+                                margin: UiRect::all(Val::Px(20.0)),
+                                justify_content: JustifyContent::Center,
+                                align_items: AlignItems::Center,
+                                flex_direction: FlexDirection::Column,
+                                ..default()
+                            },
+                            background_color: NORMAL_BUTTON.into(),
+                            ..default()
+                        })
+                        .insert(ButtonAction(GameState::Game))
+                        .with_children(|parent| {
+                            parent.spawn(TextBundle::from_section(
+                                "Try again",
                                 TextStyle {
                                     font: asset_server.load("fonts/PixeloidSansBold.ttf"),
                                     font_size: 30.,

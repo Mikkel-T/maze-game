@@ -2,6 +2,7 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rand::Rng;
 
+#[derive(Debug, Clone)]
 pub struct Maze {
     pub path: Vec<Vec<Cell>>,
 }

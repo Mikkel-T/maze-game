@@ -1,5 +1,5 @@
 use crate::utils::{
-    colors::{HOVERED_BUTTON, NORMAL_BUTTON, PRESSED_BUTTON, TEXT_COLOR},
+    colors::{BACKGROUND_COLOR, HOVERED_BUTTON, NORMAL_BUTTON, PRESSED_BUTTON, TEXT_COLOR},
     despawn_screen,
     vars::{GameState, MazeState},
 };
@@ -46,6 +46,7 @@ fn button_system(
         if *interaction == Interaction::Clicked {
             maze_state.size = size.0;
             maze_state.stopwatch.reset();
+            maze_state.path = None;
             game_state.set(GameState::Game);
         }
     }
@@ -61,7 +62,7 @@ fn menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     justify_content: JustifyContent::Center,
                     ..default()
                 },
-                background_color: Color::CRIMSON.into(),
+                background_color: BACKGROUND_COLOR.into(),
                 ..default()
             },
             OnMenuScreen,
