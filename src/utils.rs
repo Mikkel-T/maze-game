@@ -7,7 +7,6 @@ pub mod vars {
 
     pub const HEIGHT: f32 = 600.;
     pub const WIDTH: f32 = 1000.;
-    pub const TIME_STEP: f32 = 1. / 60.;
     pub const PLAYER_SPEED: f32 = 6.;
     pub const MAZE_BORDER_WIDTH: f32 = 3.;
 

@@ -32,7 +32,6 @@ fn main() {
         .add_plugin(game::GamePlugin)
         .add_plugin(endscreen::EndScreenPlugin)
         .add_startup_system(setup)
-        .insert_resource(FixedTime::new_from_secs(utils::vars::TIME_STEP))
         .add_system(bevy::window::close_on_esc)
         .run();
 }

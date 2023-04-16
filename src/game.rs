@@ -2,7 +2,7 @@ use crate::maze::{Direction, Maze};
 use crate::utils::{
     colors::{TEXT_COLOR, WALL_COLOR},
     despawn_screen,
-    vars::{GameState, MazeState, HEIGHT, MAZE_BORDER_WIDTH, PLAYER_SPEED, TIME_STEP, WIDTH},
+    vars::{GameState, MazeState, HEIGHT, MAZE_BORDER_WIDTH, PLAYER_SPEED, WIDTH},
 };
 use bevy::{
     prelude::*,
@@ -23,8 +23,7 @@ impl Plugin for GamePlugin {
                     coin_check.after(move_player),
                     time_check.after(move_player),
                 )
-                    .distributive_run_if(in_state(GameState::Game))
-                    .in_schedule(CoreSchedule::FixedUpdate),
+                    .distributive_run_if(in_state(GameState::Game)),
             )
             .add_system(despawn_screen::<OnGameScreen>.in_schedule(OnExit(GameState::Game)));
     }
@@ -295,6 +294,7 @@ fn move_player(
     keyboard_input: Res<Input<KeyCode>>,
     mut player_query: Query<&mut Transform, With<Player>>,
     collider_query: Query<&Transform, (With<Collider>, Without<Player>)>,
+    time: Res<Time>,
 ) {
     let mut player_transform = player_query.single_mut();
     let player_scale = player_transform.scale;
@@ -321,7 +321,7 @@ fn move_player(
             transform.translation,
             transform.scale.truncate(),
             player_transform.translation
-                + (Vec3::new(direction.x, 0., 0.) * TIME_STEP * PLAYER_SPEED),
+                + (Vec3::new(direction.x, 0., 0.) * time.delta_seconds() * PLAYER_SPEED),
             player_scale.truncate(),
         );
 
@@ -329,7 +329,7 @@ fn move_player(
             transform.translation,
             transform.scale.truncate(),
             player_transform.translation
-                + (Vec3::new(0., direction.y, 0.) * TIME_STEP * PLAYER_SPEED),
+                + (Vec3::new(0., direction.y, 0.) * time.delta_seconds() * PLAYER_SPEED),
             player_scale.truncate(),
         );
 
@@ -362,7 +362,7 @@ fn move_player(
         }
     }
 
-    player_transform.translation += direction * TIME_STEP * PLAYER_SPEED * player_scale;
+    player_transform.translation += direction * time.delta_seconds() * PLAYER_SPEED * player_scale;
 }
 
 fn coin_check(
