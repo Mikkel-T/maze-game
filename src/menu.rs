@@ -46,6 +46,7 @@ fn button_system(
         if *interaction == Interaction::Clicked {
             maze_state.size = size.0;
             maze_state.stopwatch.reset();
+            maze_state.stopwatch.unpause();
             maze_state.path = None;
             game_state.set(GameState::Game);
         }

@@ -9,6 +9,8 @@ pub mod vars {
     pub const WIDTH: f32 = 1000.;
     pub const PLAYER_SPEED: f32 = 6.;
     pub const MAZE_BORDER_WIDTH: f32 = 3.;
+    pub const BUTTON_SIZE: f32 = 50.;
+    pub const BUTTON_MARGIN: f32 = 5.;
 
     #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
     pub enum GameState {

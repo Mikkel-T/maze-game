@@ -119,7 +119,7 @@ fn endscreen_setup(
                         .insert(ButtonAction(GameState::Menu))
                         .with_children(|parent| {
                             parent.spawn(TextBundle::from_section(
-                                "Back to start",
+                                "Main menu",
                                 TextStyle {
                                     font: asset_server.load("fonts/PixeloidSansBold.ttf"),
                                     font_size: 30.,

@@ -1,4 +1,5 @@
 use crate::maze::{Direction, Maze};
+use crate::utils::vars::{BUTTON_MARGIN, BUTTON_SIZE};
 use crate::utils::{
     colors::{TEXT_COLOR, WALL_COLOR},
     despawn_screen,
@@ -25,8 +26,22 @@ impl Plugin for GamePlugin {
                 )
                     .distributive_run_if(in_state(GameState::Game)),
             )
+            .add_system(button_system.run_if(in_state(GameState::Game)))
             .add_system(despawn_screen::<OnGameScreen>.in_schedule(OnExit(GameState::Game)));
     }
+}
+
+#[derive(Component)]
+enum ButtonAction {
+    Pause,
+    Resume,
+    Quit,
+}
+
+#[derive(Component)]
+enum ShowDuring {
+    Paused,
+    Running,
 }
 
 #[derive(Component)]
@@ -89,6 +104,7 @@ fn menu_setup(
         },
         Player,
         OnGameScreen,
+        ShowDuring::Running,
     ));
 
     // Spawn walls and coins for the maze
@@ -114,6 +130,7 @@ fn menu_setup(
                     },
                     Coin,
                     OnGameScreen,
+                    ShowDuring::Running,
                 ));
             }
 
@@ -161,6 +178,7 @@ fn menu_setup(
                     },
                     Collider,
                     OnGameScreen,
+                    ShowDuring::Running,
                 ));
             }
         }
@@ -182,6 +200,7 @@ fn menu_setup(
         },
         Start,
         OnGameScreen,
+        ShowDuring::Running,
     ));
 
     // Spawn end
@@ -200,6 +219,7 @@ fn menu_setup(
         },
         End,
         OnGameScreen,
+        ShowDuring::Running,
     ));
 
     // Spawn end gate
@@ -219,6 +239,7 @@ fn menu_setup(
         Collider,
         EndGate,
         OnGameScreen,
+        ShowDuring::Running,
     ));
 
     // Spawn timer
@@ -240,6 +261,97 @@ fn menu_setup(
         OnGameScreen,
     ));
 
+    // Spawn pause button
+    commands.spawn((
+        ButtonBundle {
+            style: Style {
+                size: Size::new(Val::Px(BUTTON_SIZE), Val::Px(BUTTON_SIZE)),
+                margin: UiRect::all(Val::Px(BUTTON_MARGIN)),
+                position_type: PositionType::Absolute,
+                ..default()
+            },
+            image: UiImage {
+                texture: asset_server.load("images/pause.png"),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(-WIDTH / 2., HEIGHT / 2., 1.),
+                ..default()
+            },
+            ..default()
+        },
+        OnGameScreen,
+        ShowDuring::Running,
+        ButtonAction::Pause,
+    ));
+
+    // Spawn resume button
+    commands.spawn((
+        ButtonBundle {
+            style: Style {
+                size: Size::new(Val::Px(BUTTON_SIZE), Val::Px(BUTTON_SIZE)),
+                margin: UiRect::all(Val::Px(BUTTON_MARGIN)),
+                ..default()
+            },
+            image: UiImage {
+                texture: asset_server.load("images/resume.png"),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(-WIDTH / 2., HEIGHT / 2., 1.),
+                ..default()
+            },
+            visibility: Visibility::Hidden,
+            ..default()
+        },
+        OnGameScreen,
+        ShowDuring::Paused,
+        ButtonAction::Resume,
+    ));
+
+    // Spawn quit button
+    commands.spawn((
+        ButtonBundle {
+            style: Style {
+                size: Size::new(Val::Px(BUTTON_SIZE), Val::Px(BUTTON_SIZE)),
+                margin: UiRect::all(Val::Px(BUTTON_MARGIN)),
+                ..default()
+            },
+            image: UiImage {
+                texture: asset_server.load("images/quit.png"),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(-WIDTH / 2., HEIGHT / 2., 1.),
+                ..default()
+            },
+            visibility: Visibility::Hidden,
+            ..default()
+        },
+        OnGameScreen,
+        ShowDuring::Paused,
+        ButtonAction::Quit,
+    ));
+
+    // Spawn pause text
+    commands.spawn((
+        Text2dBundle {
+            text: Text::from_section(
+                "Game Paused",
+                TextStyle {
+                    font: asset_server.load("fonts/PixeloidSansBold.ttf"),
+                    font_size: 80.,
+                    color: TEXT_COLOR,
+                },
+            ),
+            visibility: Visibility::Hidden,
+            transform: Transform::from_translation(Vec3::ZERO),
+            ..default()
+        },
+        ShowDuring::Paused,
+        OnGameScreen,
+    ));
+
     // Spawn walls surrounding the start and end
     for i in [-1., 1.] {
         // Spawn left and right walls
@@ -258,6 +370,7 @@ fn menu_setup(
             },
             Collider,
             OnGameScreen,
+            ShowDuring::Running,
         ));
 
         // Spawn upper and lower walls
@@ -281,6 +394,7 @@ fn menu_setup(
                 },
                 Collider,
                 OnGameScreen,
+                ShowDuring::Running,
             ));
         }
     }
@@ -295,6 +409,7 @@ fn move_player(
     mut player_query: Query<&mut Transform, With<Player>>,
     collider_query: Query<&Transform, (With<Collider>, Without<Player>)>,
     time: Res<Time>,
+    maze_state: Res<MazeState>,
 ) {
     let mut player_transform = player_query.single_mut();
     let player_scale = player_transform.scale;
@@ -362,7 +477,10 @@ fn move_player(
         }
     }
 
-    player_transform.translation += direction * time.delta_seconds() * PLAYER_SPEED * player_scale;
+    if !maze_state.stopwatch.paused() {
+        player_transform.translation +=
+            direction * time.delta_seconds() * PLAYER_SPEED * player_scale;
+    }
 }
 
 fn coin_check(
@@ -427,4 +545,52 @@ fn time_check(
     }
 
     text.sections[0].value = format!("{:.3}", maze_state.stopwatch.elapsed_secs());
+}
+
+fn button_system(
+    mut interaction_query: Query<
+        (&Interaction, &ButtonAction),
+        (Changed<Interaction>, With<Button>),
+    >,
+    mut collider_query: Query<(&mut Visibility, &ShowDuring), With<ShowDuring>>,
+    mut maze_state: ResMut<MazeState>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    for (interaction, button_action) in interaction_query.iter_mut() {
+        match interaction {
+            Interaction::Clicked => match button_action {
+                ButtonAction::Pause => {
+                    maze_state.stopwatch.pause();
+                    for (mut visibility, show_during) in collider_query.iter_mut() {
+                        match *show_during {
+                            ShowDuring::Paused => {
+                                *visibility = Visibility::Visible;
+                            }
+                            ShowDuring::Running => {
+                                *visibility = Visibility::Hidden;
+                            }
+                        }
+                    }
+                }
+                ButtonAction::Resume => {
+                    maze_state.stopwatch.unpause();
+                    for (mut visibility, show_during) in collider_query.iter_mut() {
+                        match *show_during {
+                            ShowDuring::Paused => {
+                                *visibility = Visibility::Hidden;
+                            }
+                            ShowDuring::Running => {
+                                *visibility = Visibility::Visible;
+                            }
+                        }
+                    }
+                }
+                ButtonAction::Quit => {
+                    maze_state.stopwatch.pause();
+                    game_state.set(GameState::Menu);
+                }
+            },
+            _ => {}
+        }
+    }
 }
