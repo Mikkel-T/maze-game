@@ -23,6 +23,7 @@ impl Plugin for GamePlugin {
                     move_player,
                     coin_check.after(move_player),
                     time_check.after(move_player),
+                    coin_count.after(move_player),
                 )
                     .distributive_run_if(in_state(GameState::Game)),
             )
@@ -68,6 +69,9 @@ struct EndGate;
 #[derive(Component)]
 struct TimerBoard;
 
+#[derive(Component)]
+struct CoinCounter;
+
 fn menu_setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -75,6 +79,8 @@ fn menu_setup(
 ) {
     let size = maze_state.size;
     let coins = (size + 9) / 4;
+
+    maze_state.coins = coins;
 
     let path = &maze_state.path;
 
@@ -261,6 +267,47 @@ fn menu_setup(
         OnGameScreen,
     ));
 
+    // Spawn coin counter
+    commands.spawn((
+        Text2dBundle {
+            text: Text::from_section(
+                format!("0/{coins}"),
+                TextStyle {
+                    font: asset_server.load("fonts/PixeloidSansBold.ttf"),
+                    font_size: 40.,
+                    color: TEXT_COLOR,
+                },
+            ),
+            transform: Transform::from_translation(Vec3::new(
+                (WIDTH / 2.) - 40.,
+                (HEIGHT / 2.) - 40.,
+                1.,
+            )),
+            text_anchor: Anchor::TopRight,
+            ..default()
+        },
+        CoinCounter,
+        OnGameScreen,
+    ));
+
+    // Spawn coin
+    commands.spawn((
+        SpriteBundle {
+            texture: asset_server.load("images/coin.png"),
+            sprite: Sprite {
+                custom_size: Some(Vec2::ONE),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new((WIDTH / 2.) - 20., (HEIGHT / 2.) - 60., 0.),
+                scale: Vec3::new(35., 35., 1.),
+                ..default()
+            },
+            ..default()
+        },
+        OnGameScreen,
+    ));
+
     // Spawn pause button
     commands.spawn((
         ButtonBundle {
@@ -431,20 +478,20 @@ fn move_player(
         direction.x += 1.;
     }
 
+    let mul_const = time.delta_seconds() * PLAYER_SPEED;
+
     for transform in &collider_query {
         let collision_x = collide(
             transform.translation,
             transform.scale.truncate(),
-            player_transform.translation
-                + (Vec3::new(direction.x, 0., 0.) * time.delta_seconds() * PLAYER_SPEED),
+            player_transform.translation + (Vec3::new(direction.x, 0., 0.) * mul_const),
             player_scale.truncate(),
         );
 
         let collision_y = collide(
             transform.translation,
             transform.scale.truncate(),
-            player_transform.translation
-                + (Vec3::new(0., direction.y, 0.) * time.delta_seconds() * PLAYER_SPEED),
+            player_transform.translation + (Vec3::new(0., direction.y, 0.) * mul_const),
             player_scale.truncate(),
         );
 
@@ -478,8 +525,7 @@ fn move_player(
     }
 
     if !maze_state.stopwatch.paused() {
-        player_transform.translation +=
-            direction * time.delta_seconds() * PLAYER_SPEED * player_scale;
+        player_transform.translation += direction * mul_const * player_scale;
     }
 }
 
@@ -547,6 +593,18 @@ fn time_check(
     text.sections[0].value = format!("{:.3}", maze_state.stopwatch.elapsed_secs());
 }
 
+fn coin_count(
+    mut coincounter_query: Query<&mut Text, With<CoinCounter>>,
+    maze_state: ResMut<MazeState>,
+    coins_query: Query<&Coin>,
+) {
+    let mut text = coincounter_query.single_mut();
+
+    let coins = coins_query.iter().count();
+
+    text.sections[0].value = format!("{}/{}", maze_state.coins - coins, maze_state.coins);
+}
+
 fn button_system(
     mut interaction_query: Query<
         (&Interaction, &ButtonAction),
@@ -557,8 +615,8 @@ fn button_system(
     mut game_state: ResMut<NextState<GameState>>,
 ) {
     for (interaction, button_action) in interaction_query.iter_mut() {
-        match interaction {
-            Interaction::Clicked => match button_action {
+        if interaction == &Interaction::Clicked {
+            match button_action {
                 ButtonAction::Pause => {
                     maze_state.stopwatch.pause();
                     for (mut visibility, show_during) in collider_query.iter_mut() {
@@ -589,8 +647,7 @@ fn button_system(
                     maze_state.stopwatch.pause();
                     game_state.set(GameState::Menu);
                 }
-            },
-            _ => {}
+            }
         }
     }
 }

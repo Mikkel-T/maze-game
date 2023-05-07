@@ -25,6 +25,7 @@ pub mod vars {
         pub stopwatch: Stopwatch,
         pub size: usize,
         pub path: Option<Maze>,
+        pub coins: usize,
     }
 }
 

@@ -135,6 +135,15 @@ fn menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 ));
                             });
                     }
+
+                    parent.spawn(TextBundle::from_section(
+                        "A game by Mikkel Tønder",
+                        TextStyle {
+                            font: asset_server.load("fonts/PixeloidSansBold.ttf"),
+                            font_size: 30.,
+                            color: TEXT_COLOR,
+                        },
+                    ));
                 });
         });
 }

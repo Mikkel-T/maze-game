@@ -27,6 +27,7 @@ fn main() {
             stopwatch: Stopwatch::new(),
             size: 0,
             path: None,
+            coins: 0,
         })
         .add_plugin(menu::MenuPlugin)
         .add_plugin(game::GamePlugin)
