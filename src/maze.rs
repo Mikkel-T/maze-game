@@ -33,8 +33,8 @@ impl Maze {
             let mut found = false;
 
             for dir in directions_tmp {
-                let nx = cell.x + delta_dir(dir).x;
-                let ny = cell.y + delta_dir(dir).y;
+                let nx = cell.x + dir.delta().x;
+                let ny = cell.y + dir.delta().y;
 
                 if nx >= 0
                     && ny >= 0
@@ -43,7 +43,7 @@ impl Maze {
                     && path[ny as usize][nx as usize].is_zero()
                 {
                     path[cell.y as usize][cell.x as usize].carve(dir);
-                    path[ny as usize][nx as usize].carve(opposite_dir(dir));
+                    path[ny as usize][nx as usize].carve(dir.opposite());
                     visited.push(Point { x: nx, y: ny });
                     found = true;
                     break;
@@ -125,20 +125,22 @@ impl Cell {
     }
 }
 
-pub fn delta_dir(dir: Direction) -> Point {
-    match dir {
-        Direction::North => Point { x: 0, y: -1 },
-        Direction::South => Point { x: 0, y: 1 },
-        Direction::East => Point { x: 1, y: 0 },
-        Direction::West => Point { x: -1, y: 0 },
+impl Direction{
+    pub fn delta(&self) -> Point {
+        match self {
+            Direction::North => Point { x: 0, y: -1 },
+            Direction::South => Point { x: 0, y: 1 },
+            Direction::East => Point { x: 1, y: 0 },
+            Direction::West => Point { x: -1, y: 0 },
+        }
     }
-}
 
-pub fn opposite_dir(dir: Direction) -> Direction {
-    match dir {
-        Direction::North => Direction::South,
-        Direction::South => Direction::North,
-        Direction::East => Direction::West,
-        Direction::West => Direction::East,
+    pub fn opposite(&self) -> Direction {
+        match self {
+            Direction::North => Direction::South,
+            Direction::South => Direction::North,
+            Direction::East => Direction::West,
+            Direction::West => Direction::East,
+        }
     }
 }

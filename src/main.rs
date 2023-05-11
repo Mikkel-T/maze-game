@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 pub mod endscreen;
 pub mod game;
 pub mod maze;
